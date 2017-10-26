@@ -1,0 +1,30 @@
+---
+title: "README"
+author: "Maria Izabel cavassim Alves"
+date: "10/26/2017"
+output:
+  md_document:
+    variant: markdown_github
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+This document was created as a resource of the scripts used in the analysis of Rhizobium paper. 
+
+## Genome assembly: Spades
+
+## Assembly stats: QUAST
+
+## Gene identification: Prokka
+
+## Gene alignment: ClustalO
+
+## SNP calling
+
+## Orthologous identification: ProteinOrtho
+
+## Orthologous identification: OrthoMCL
+
