@@ -43,18 +43,18 @@ body {
 <h1 id="introduction">Introduction</h1>
 <p>This document was created as a resource of the scripts used in the analysis of Rhizobium paper.</p>
 <h2 id="genome-assembly-spades">Genome assembly: Spades</h2>
-<pre><code>#!/bin/bash
-for f in ../reads/*_1_trimmed.fastq.gz; do
-    FILE=${f#../reads/*}
-    STRAIN=${FILE%*_1_trimmed.fastq.gz}
-    if [ -d $STRAIN&quot;/&quot;$STRAIN&quot;_spades_careful&quot; ]; then
-        echo $STRAIN&quot;: _spades_careful directory exists. Skipping strain.&quot;
-        continue
-    fi
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="co">#!/bin/bash</span>
+<span class="kw">for</span> <span class="kw">f</span> in ../reads/*_1_trimmed.fastq.gz<span class="kw">;</span> <span class="kw">do</span>
+    <span class="ot">FILE=${f#</span>../reads/*<span class="ot">}</span>
+    <span class="ot">STRAIN=${FILE%</span>*_1_trimmed.fastq.gz<span class="ot">}</span>
+    <span class="kw">if [</span> <span class="ot">-d</span> <span class="ot">$STRAIN</span><span class="st">&quot;/&quot;</span><span class="ot">$STRAIN</span><span class="st">&quot;_spades_careful&quot;</span><span class="kw"> ]</span>; <span class="kw">then</span>
+        <span class="kw">echo</span> <span class="ot">$STRAIN</span><span class="st">&quot;: _spades_careful directory exists. Skipping strain.&quot;</span>
+        <span class="kw">continue</span>
+    <span class="kw">fi</span>
 
-    mkdir -p $STRAIN
-    qx --no-scratch -c 8 -m 32g -t 05:00:00 &quot;/project/clover/faststorage/tools/SPAdes-3.6.2-Linux/bin/spades.py --careful -t 8 -m 32 -o $STRAIN&quot;/&quot;$STRAIN&quot;_spades_careful&quot; -1 $f -2 ${f%*1_trimmed.fastq.gz}&quot;2_trimmed.fastq.gz&quot; -s ${f%*1_trimmed.fastq.gz}&quot;U1_trimmed.fastq.gz&quot; -s ${f%*1_trimmed.fastq.gz}&quot;U2_trimmed.fastq.gz&quot;&quot;;
-done</code></pre>
+    <span class="kw">mkdir</span> -p <span class="ot">$STRAIN</span>
+    <span class="kw">qx</span> --no-scratch -c 8 -m 32g -t 05:00:00 <span class="st">&quot;/project/clover/faststorage/tools/SPAdes-3.6.2-Linux/bin/spades.py --careful -t 8 -m 32 -o </span><span class="ot">$STRAIN</span><span class="st">&quot;</span>/<span class="st">&quot;</span><span class="ot">$STRAIN</span><span class="st">&quot;</span>_spades_careful<span class="st">&quot; -1 </span><span class="ot">$f</span><span class="st"> -2 </span><span class="ot">${f%</span>*1_trimmed.fastq.gz<span class="ot">}</span><span class="st">&quot;</span>2_trimmed.fastq.gz<span class="st">&quot; -s </span><span class="ot">${f%</span>*1_trimmed.fastq.gz<span class="ot">}</span><span class="st">&quot;</span>U1_trimmed.fastq.gz<span class="st">&quot; -s </span><span class="ot">${f%</span>*1_trimmed.fastq.gz<span class="ot">}</span><span class="st">&quot;</span>U2_trimmed.fastq.gz<span class="st">&quot;&quot;</span><span class="kw">;</span>
+<span class="kw">done</span></code></pre></div>
 <h2 id="assembly-stats-quast">Assembly stats: QUAST</h2>
 <h2 id="gene-identification-prokka">Gene identification: Prokka</h2>
 <h2 id="gene-alignment-clustalo">Gene alignment: ClustalO</h2>

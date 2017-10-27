@@ -16,7 +16,7 @@ This document was created as a resource of the scripts used in the analysis of R
 
 ## Genome assembly: Spades
 
-```{ }
+```{r, engine = 'bash', eval = FALSE}
 #!/bin/bash
 for f in ../reads/*_1_trimmed.fastq.gz; do
 	FILE=${f#../reads/*}
