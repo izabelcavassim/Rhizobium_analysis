@@ -56,11 +56,276 @@ body {
     <span class="kw">qx</span> --no-scratch -c 8 -m 32g -t 05:00:00 <span class="st">&quot;/project/clover/faststorage/tools/SPAdes-3.6.2-Linux/bin/spades.py --careful -t 8 -m 32 -o </span><span class="ot">$STRAIN</span><span class="st">&quot;</span>/<span class="st">&quot;</span><span class="ot">$STRAIN</span><span class="st">&quot;</span>_spades_careful<span class="st">&quot; -1 </span><span class="ot">$f</span><span class="st"> -2 </span><span class="ot">${f%</span>*1_trimmed.fastq.gz<span class="ot">}</span><span class="st">&quot;</span>2_trimmed.fastq.gz<span class="st">&quot; -s </span><span class="ot">${f%</span>*1_trimmed.fastq.gz<span class="ot">}</span><span class="st">&quot;</span>U1_trimmed.fastq.gz<span class="st">&quot; -s </span><span class="ot">${f%</span>*1_trimmed.fastq.gz<span class="ot">}</span><span class="st">&quot;</span>U2_trimmed.fastq.gz<span class="st">&quot;&quot;</span><span class="kw">;</span>
 <span class="kw">done</span></code></pre></div>
 <h2 id="assembly-stats-quast">Assembly stats: QUAST</h2>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="co">#!/bin/bash</span>
+<span class="co"># For each strain, create a quast report over SPAdes, a5, Discovar and CISA assemblies.</span>
+<span class="kw">for</span> <span class="kw">f</span> in contigs/*.fasta<span class="kw">;</span> <span class="kw">do</span>
+    <span class="ot">FILE_NAME=${f#</span>*/<span class="ot">}</span>
+    <span class="ot">STRAIN_NAME=${FILE_NAME%</span>*.fasta<span class="ot">}</span>
+    <span class="kw">qx</span> --no-scratch -c 1 -t 00:10:00 <span class="st">&quot;../../tools/quast-3.2/quast.py -t 1 -o assemblies/&quot;</span><span class="ot">$STRAIN_NAME</span><span class="st">&quot;/quast contigs/&quot;</span><span class="ot">$STRAIN_NAME</span><span class="st">&quot;.fasta assemblies/&quot;</span><span class="ot">$STRAIN_NAME</span><span class="st">&quot;/spades/contigs.fasta assemblies/&quot;</span><span class="ot">$STRAIN_NAME</span><span class="st">&quot;/a5/&quot;</span><span class="ot">$STRAIN_NAME</span><span class="st">&quot;.contigs.fasta assemblies/&quot;</span><span class="ot">$STRAIN_NAME</span><span class="st">&quot;/discovar/a.final/a.lines.fasta assemblies/&quot;</span><span class="ot">$STRAIN_NAME</span><span class="st">&quot;/cisa/CISA_Out.fa&quot;</span>
+<span class="kw">done</span></code></pre></div>
 <h2 id="gene-identification-prokka">Gene identification: Prokka</h2>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="co">#!/bin/bash</span>
+<span class="co"># For each contig run prokka, many output files are generated: .gff, .gbk, .fna, .faa and so on.</span>
+<span class="kw">for</span> <span class="kw">f</span> in */*.contigs.fna<span class="kw">;</span> <span class="kw">do</span>
+    <span class="ot">STRAIN=$(IFS=</span><span class="st">&quot;/&quot;</span>; <span class="kw">set</span> <span class="kw">--</span> <span class="ot">$f</span><span class="kw">;</span> <span class="kw">echo</span> <span class="ot">$1)</span>
+    <span class="kw">if [</span> <span class="ot">-f</span> <span class="ot">$STRAIN</span><span class="st">&quot;/&quot;</span><span class="ot">$STRAIN</span><span class="st">&quot;.gff&quot;</span><span class="kw"> ]</span>; <span class="kw">then</span>
+    <span class="kw">echo</span> <span class="ot">$STRAIN</span><span class="st">&quot;: gff file exists. Skipping strain.&quot;</span>
+    <span class="kw">continue</span>
+    <span class="kw">fi</span>
+    <span class="kw">cd</span> <span class="ot">$STRAIN</span>
+    <span class="kw">qx</span> --no-scratch -t 10:00:00 -c 4 <span class="st">&quot;/project/clover/faststorage/tools/prokka-1.11/bin/prokka -cpus=4 *.contigs.fna&quot;</span>
+    <span class="kw">cd</span> ..
+<span class="kw">done</span></code></pre></div>
 <h2 id="gene-alignment-clustalo">Gene alignment: ClustalO</h2>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">
+<span class="co"># Group fasta files are aligned in a ???codon aware matter???. The clustalO runs with default parameters. </span>
+
+<span class="im">import</span> argparse
+<span class="im">import</span> io
+<span class="im">import</span> subprocess
+<span class="im">from</span> itertools <span class="im">import</span> groupby
+
+<span class="im">from</span> Bio <span class="im">import</span> AlignIO
+<span class="im">from</span> Bio.Align <span class="im">import</span> MultipleSeqAlignment
+<span class="im">from</span> Bio.Alphabet <span class="im">import</span> generic_dna
+<span class="im">from</span> Bio.Seq <span class="im">import</span> Seq
+<span class="im">from</span> Bio.SeqRecord <span class="im">import</span> SeqRecord
+
+
+<span class="kw">def</span> fasta_iter(fasta_file):
+    <span class="co">&quot;&quot;&quot;</span>
+<span class="co">    Given a FASTA file, yield tuples of header, sequence.</span>
+<span class="co">    Author: Brent Pedersen (https://www.biostars.org/p/710/#1412)</span>
+<span class="co">    &quot;&quot;&quot;</span>
+    fh <span class="op">=</span> <span class="bu">open</span>(fasta_file)
+    <span class="co"># Ditch the boolean (x[0]) and just keep the header or sequence since we know they alternate.</span>
+    faiter <span class="op">=</span> (x[<span class="dv">1</span>] <span class="cf">for</span> x <span class="op">in</span> groupby(fh, <span class="kw">lambda</span> line: line[<span class="dv">0</span>] <span class="op">==</span> <span class="st">&quot;&gt;&quot;</span>))
+    <span class="cf">for</span> header <span class="op">in</span> faiter:
+        <span class="co"># Drop the &quot;&gt;&quot;.</span>
+        header <span class="op">=</span> header.<span class="fu">__next__</span>()[<span class="dv">1</span>:].strip()
+        <span class="co"># Join all sequence lines to one in case it spans multiple lines.</span>
+        seq <span class="op">=</span> <span class="st">&quot;&quot;</span>.join(s.strip() <span class="cf">for</span> s <span class="op">in</span> faiter.<span class="fu">__next__</span>())
+        <span class="cf">yield</span> header, seq
+
+<span class="kw">def</span> seq_to_str(header, seq):
+    <span class="cf">return</span> <span class="st">&quot;&gt;{}</span><span class="ch">\n</span><span class="st">{}</span><span class="ch">\n</span><span class="st">&quot;</span>.<span class="bu">format</span>(header, seq)
+
+<span class="kw">def</span> back_translate(fasta_aln, original_sequences):
+    string_handle <span class="op">=</span> io.StringIO()
+    string_handle.write(fasta_aln)
+    string_handle.seek(<span class="dv">0</span>)
+    outer_alignments <span class="op">=</span> AlignIO.parse(string_handle, <span class="st">&quot;fasta&quot;</span>)
+    back_translated_records <span class="op">=</span> []
+    <span class="cf">for</span> alignments <span class="op">in</span> outer_alignments:
+        <span class="cf">for</span> aln <span class="op">in</span> alignments:
+            original_seq <span class="op">=</span> original_sequences[aln.<span class="bu">id</span>]
+
+            back_translated <span class="op">=</span> []
+            gaps <span class="op">=</span> <span class="dv">0</span>
+            <span class="cf">for</span> i <span class="op">in</span> <span class="bu">range</span>(<span class="bu">len</span>(aln.seq)):
+                <span class="cf">if</span> aln.seq[i] <span class="op">==</span> <span class="st">&quot;-&quot;</span>:
+                    gaps <span class="op">+=</span> <span class="dv">1</span>
+                    back_translated.append(<span class="st">&quot;---&quot;</span>)
+                <span class="cf">else</span>:
+                    idx <span class="op">=</span> (i <span class="op">-</span> gaps) <span class="op">*</span> <span class="dv">3</span>
+                    back_translated.append(original_seq[idx:(idx <span class="op">+</span> <span class="dv">3</span>)])
+
+            back_translated_records.append(SeqRecord(Seq(<span class="st">&quot;&quot;</span>.join(back_translated), generic_dna), aln.<span class="bu">id</span>))
+
+    <span class="cf">return</span> MultipleSeqAlignment(back_translated_records, alphabet<span class="op">=</span>generic_dna)
+
+
+<span class="kw">def</span> msa_to_str(msa):
+    <span class="co"># msa.format(&quot;fasta&quot;) prints unecessary things such as description. This is a simpler version.</span>
+    <span class="cf">return</span> <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>.join(seq_to_str(aln.<span class="bu">id</span>, aln.seq) <span class="cf">for</span> aln <span class="op">in</span> <span class="bu">sorted</span>(msa, key<span class="op">=</span><span class="kw">lambda</span> aln: aln.<span class="bu">id</span>))
+
+
+<span class="kw">def</span> main():
+    parser <span class="op">=</span> argparse.ArgumentParser(description<span class="op">=</span><span class="st">&quot;Read a fasta file and align the sequences in it using ClustalO in a &quot;</span>
+                                                 <span class="co">&quot;codon-aware style.&quot;</span>)
+    parser.add_argument(<span class="st">&quot;in_file&quot;</span>, <span class="bu">type</span><span class="op">=</span><span class="bu">str</span>, <span class="bu">help</span><span class="op">=</span><span class="st">&quot;the input fasta file&quot;</span>)
+    parser.add_argument(<span class="st">&quot;clustal_o_exec&quot;</span>, <span class="bu">type</span><span class="op">=</span><span class="bu">str</span>, <span class="bu">help</span><span class="op">=</span><span class="st">&quot;the path to the ClustalO executeable&quot;</span>, default<span class="op">=</span><span class="st">&quot;clustalo&quot;</span>)
+    parser.add_argument(<span class="st">'--output_aa'</span>, dest<span class="op">=</span><span class="st">'output_aa'</span>, action<span class="op">=</span><span class="st">'store_true'</span>)
+    parser.add_argument(<span class="st">&quot;--threads&quot;</span>, <span class="bu">type</span><span class="op">=</span><span class="bu">int</span>, <span class="bu">help</span><span class="op">=</span><span class="st">&quot;the number of threads to use&quot;</span>, default<span class="op">=</span><span class="dv">1</span>)
+    args <span class="op">=</span> parser.parse_args()
+
+    original_sequences <span class="op">=</span> {}
+    <span class="cf">for</span> h, s <span class="op">in</span> fasta_iter(args.in_file):
+        orig_h <span class="op">=</span> h
+        i <span class="op">=</span> <span class="dv">2</span>
+        <span class="cf">while</span> h <span class="op">in</span> original_sequences:
+            h <span class="op">=</span> <span class="st">&quot;{}_{}&quot;</span>.<span class="bu">format</span>(orig_h, i)
+            i <span class="op">+=</span> <span class="dv">1</span>
+        original_sequences[h] <span class="op">=</span> s
+
+    translated_sequences <span class="op">=</span> [(header, Seq(seq).translate()) <span class="cf">for</span> header, seq <span class="op">in</span> original_sequences.items()]
+    p <span class="op">=</span> subprocess.Popen([args.clustal_o_exec, <span class="st">&quot;--outfmt=fasta&quot;</span>, <span class="st">&quot;--seqtype=Protein&quot;</span>,
+                          <span class="co">&quot;--threads={}&quot;</span>.<span class="bu">format</span>(<span class="bu">str</span>(args.threads)), <span class="st">&quot;--infile=-&quot;</span>],
+                         stdout<span class="op">=</span>subprocess.PIPE, stdin<span class="op">=</span>subprocess.PIPE, stderr<span class="op">=</span>subprocess.STDOUT)
+    aln_out <span class="op">=</span> p.communicate(<span class="bu">input</span><span class="op">=</span><span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>.join(seq_to_str(h, s) <span class="cf">for</span> h, s <span class="op">in</span> translated_sequences).encode())
+    <span class="cf">if</span> args.output_aa:
+        <span class="bu">print</span>(aln_out[<span class="dv">0</span>].decode())
+    <span class="cf">else</span>:
+        back_translated_alignment <span class="op">=</span> back_translate(aln_out[<span class="dv">0</span>].decode(), original_sequences)
+        <span class="bu">print</span>(msa_to_str(back_translated_alignment))
+
+
+<span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">'__main__'</span>:
+    main()</code></pre></div>
 <h2 id="snp-calling">SNP calling</h2>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="co"># Script located in scripts_methods ld.py</span></code></pre></div>
 <h2 id="orthologous-identification-proteinortho">Orthologous identification: ProteinOrtho</h2>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="co">#!/bin/bash</span>
+<span class="co"># For each protein fasta file, go through each step of proteinortho, with synteny flag enabled</span>
+
+<span class="kw">qx</span> --no-scratch -t 00:30:00 -c 16 -w <span class="st">&quot;/home/agb/tools/proteinortho_v5.13/proteinortho5.pl -cpus=16 -synteny -step=1 data/*.faa&quot;</span>
+
+<span class="kw">for</span> <span class="kw">i</span> in <span class="dt">{1..199}</span><span class="kw">;</span> <span class="kw">do</span>
+    <span class="kw">qx</span> --no-scratch -t 24:00:00 -c 4 <span class="st">&quot;/home/agb/tools/proteinortho_v5.13/proteinortho5.pl -cpus=4 -synteny -step=2 -startat=</span><span class="ot">$i</span><span class="st"> -stopat=</span><span class="ot">$i</span><span class="st"> data/*.faa&quot;</span>
+<span class="kw">done</span>
+
+<span class="kw">qx</span> --no-scratch -t 4:00:00 -c 8 <span class="st">&quot;/home/agb/tools/proteinortho_v5.13/proteinortho5.pl -cpus=8 -synteny -step=3 data/*.faa&quot;</span></code></pre></div>
 <h2 id="orthologous-identification-orthomcl">Orthologous identification: OrthoMCL</h2>
+<p>OrthoMCL analysis were executed with PosgresSQL instead of mySQL. More details on how to run OrthoMCL using PostgreSQL can be found [here]<a href="https://bitbucket.org/asger/orthomcl-postgresql" class="uri">https://bitbucket.org/asger/orthomcl-postgresql</a>. The output of OrthoMCL it was then parsed into fasta files. The script ??disambiguate_orthomcl_groups.py?? is then used to filter for paralagous genes.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">
+<span class="im">import</span> argparse
+<span class="im">import</span> glob
+<span class="im">from</span> itertools <span class="im">import</span> groupby
+
+<span class="im">from</span> GFFReader <span class="im">import</span> gff_iter
+<span class="im">from</span> disambiguate_orthomcl_groups <span class="im">import</span> get_disambiguated_groups, Gene
+
+
+<span class="kw">def</span> fasta_iter(fasta_file):
+    <span class="co">&quot;&quot;&quot;</span>
+<span class="co">    Given a FASTA file, yield tuples of header, sequence.</span>
+<span class="co">    Author: Brent Pedersen (https://www.biostars.org/p/710/#1412)</span>
+<span class="co">    &quot;&quot;&quot;</span>
+    fh <span class="op">=</span> <span class="bu">open</span>(fasta_file)
+    <span class="co"># Ditch the boolean (x[0]) and just keep the header or sequence since we know they alternate.</span>
+    faiter <span class="op">=</span> (x[<span class="dv">1</span>] <span class="cf">for</span> x <span class="op">in</span> groupby(fh, <span class="kw">lambda</span> line: line[<span class="dv">0</span>] <span class="op">==</span> <span class="st">&quot;&gt;&quot;</span>))
+    <span class="cf">for</span> header <span class="op">in</span> faiter:
+        <span class="co"># Drop the &quot;&gt;&quot;.</span>
+        header <span class="op">=</span> header.<span class="fu">__next__</span>()[<span class="dv">1</span>:].strip()
+        <span class="co"># Join all sequence lines to one in case it spans multiple lines.</span>
+        seq <span class="op">=</span> <span class="st">&quot;&quot;</span>.join(s.strip() <span class="cf">for</span> s <span class="op">in</span> faiter.<span class="fu">__next__</span>())
+        <span class="cf">yield</span> header, seq
+
+
+<span class="kw">def</span> reverse_complement(seq):
+    seq_dict <span class="op">=</span> {<span class="st">'A'</span>: <span class="st">'T'</span>, <span class="st">'T'</span>: <span class="st">'A'</span>, <span class="st">'G'</span>: <span class="st">'C'</span>, <span class="st">'C'</span>: <span class="st">'G'</span>}
+    <span class="cf">return</span> <span class="st">&quot;&quot;</span>.join([seq_dict[base] <span class="cf">for</span> base <span class="op">in</span> <span class="bu">reversed</span>(seq)])
+
+
+<span class="kw">def</span> get_genes_from_gff(gff_glob):
+    genes <span class="op">=</span> {}
+    <span class="cf">for</span> gff_file_name <span class="op">in</span> glob.iglob(gff_glob):
+        gff_glob_file_name <span class="op">=</span> gff_file_name[gff_file_name.rfind(<span class="st">&quot;/&quot;</span>) <span class="op">+</span> <span class="dv">1</span>:]
+        strain_name <span class="op">=</span> gff_glob_file_name[:gff_glob_file_name.find(<span class="st">&quot;.&quot;</span>)][<span class="dv">0</span>:<span class="dv">4</span>]
+        <span class="bu">print</span>(<span class="st">&quot;Reading genes for strain {} (file {})...&quot;</span>.<span class="bu">format</span>(strain_name, gff_file_name))
+
+        genes[strain_name] <span class="op">=</span> {}
+
+        previous_gene <span class="op">=</span> <span class="va">None</span>
+        <span class="cf">for</span> gff_entry <span class="op">in</span> gff_iter(gff_file_name, type_filter<span class="op">=</span><span class="st">&quot;CDS&quot;</span>):
+            gene_id <span class="op">=</span> gff_entry.attributes[<span class="st">&quot;ID&quot;</span>].replace(<span class="st">&quot;PROKKA_&quot;</span>, <span class="st">&quot;&quot;</span>)
+            gene <span class="op">=</span> Gene(gene_id, gff_entry.sequence, gff_entry.start, gff_entry.end, gff_entry.strand <span class="op">==</span> <span class="st">&quot;-&quot;</span>)
+            <span class="cf">if</span> previous_gene <span class="op">is</span> <span class="op">not</span> <span class="va">None</span> <span class="op">and</span> previous_gene.seq_name <span class="op">==</span> gff_entry.sequence:
+                gene.neighbor_l <span class="op">=</span> previous_gene
+                previous_gene.neighbor_r <span class="op">=</span> gene
+
+            genes[strain_name][gff_entry.attributes[<span class="st">&quot;ID&quot;</span>]] <span class="op">=</span> gene
+            previous_gene <span class="op">=</span> gene
+
+    <span class="cf">return</span> genes
+
+
+<span class="kw">def</span> read_orthomcl_groups(file_name, ortho_name_to_strain_name<span class="op">=</span><span class="va">None</span>):
+    groups <span class="op">=</span> []
+    <span class="cf">with</span> <span class="bu">open</span>(file_name) <span class="im">as</span> file_h:
+        <span class="cf">for</span> line <span class="op">in</span> file_h:
+            <span class="cf">if</span> line.isspace():
+                <span class="cf">continue</span>
+
+            line_members <span class="op">=</span> line.strip().split(<span class="st">&quot; &quot;</span>)
+            <span class="cf">if</span> ortho_name_to_strain_name <span class="op">is</span> <span class="op">not</span> <span class="va">None</span>:
+                group_members <span class="op">=</span> [(ortho_name_to_strain_name[m.split(<span class="st">&quot;|&quot;</span>)[<span class="dv">0</span>]], m.split(<span class="st">&quot;|&quot;</span>)[<span class="dv">1</span>])
+                                 <span class="cf">for</span> m <span class="op">in</span> line_members[<span class="dv">1</span>:]]
+            <span class="cf">else</span>:
+                group_members <span class="op">=</span> [(m.split(<span class="st">&quot;|&quot;</span>)[<span class="dv">0</span>], m.split(<span class="st">&quot;|&quot;</span>)[<span class="dv">1</span>]) <span class="cf">for</span> m <span class="op">in</span> line_members[<span class="dv">1</span>:]]
+            group_id <span class="op">=</span> line_members[<span class="dv">0</span>][:<span class="op">-</span><span class="dv">1</span>]
+            groups.append((group_id, group_members))
+
+    <span class="cf">return</span> groups
+
+
+<span class="kw">def</span> main():
+    parser <span class="op">=</span> argparse.ArgumentParser(description<span class="op">=</span><span class="st">&quot;Read an OrthoMCL output file and output each group as a fasta file.&quot;</span>)
+    parser.add_argument(<span class="st">&quot;in_file&quot;</span>, <span class="bu">type</span><span class="op">=</span><span class="bu">str</span>, <span class="bu">help</span><span class="op">=</span><span class="st">&quot;the input (groups.txt) file&quot;</span>)
+    parser.add_argument(<span class="st">&quot;fna_glob&quot;</span>, <span class="bu">type</span><span class="op">=</span><span class="bu">str</span>, <span class="bu">help</span><span class="op">=</span><span class="st">&quot;a glob pattern pointing to all fna files to load.&quot;</span>
+                                                   <span class="co">&quot; Remember to quote your argument to stop wildcard expansion.&quot;</span>)
+    parser.add_argument(<span class="st">&quot;gff_glob&quot;</span>, <span class="bu">type</span><span class="op">=</span><span class="bu">str</span>, <span class="bu">help</span><span class="op">=</span><span class="st">&quot;a glob pattern pointing to all the gff files to load.&quot;</span>
+                                                   <span class="co">&quot; Remember to quote your argument to stop wildcard expansion.&quot;</span>)
+    parser.add_argument(<span class="st">&quot;u_out_files_dir&quot;</span>, <span class="bu">type</span><span class="op">=</span><span class="bu">str</span>, <span class="bu">help</span><span class="op">=</span><span class="st">&quot;the output directory of the unambiguous group fasta files&quot;</span>)
+    parser.add_argument(<span class="st">&quot;a_out_files_dir&quot;</span>, <span class="bu">type</span><span class="op">=</span><span class="bu">str</span>, <span class="bu">help</span><span class="op">=</span><span class="st">&quot;the output directory of the ambiguous group fasta files&quot;</span>)
+
+    args <span class="op">=</span> parser.parse_args()
+    <span class="cf">assert</span> args.fna_glob.startswith(<span class="st">&quot;~&quot;</span>), <span class="st">&quot;You cannot use '~' in the fna glob pattern.&quot;</span>
+    <span class="cf">assert</span> args.gff_glob.startswith(<span class="st">&quot;~&quot;</span>), <span class="st">&quot;You cannot use '~' in the gff glob pattern.&quot;</span>
+
+    <span class="co"># Extract the sequences from each strain's fasta file. Assume we can keep it all in memory!</span>
+    sequences <span class="op">=</span> {}
+    <span class="bu">print</span>(<span class="st">&quot;Using fna glob '{}'.&quot;</span>.<span class="bu">format</span>(args.fna_glob))
+    <span class="cf">for</span> strain_file_name <span class="op">in</span> glob.iglob(args.fna_glob):
+        fna_glob_file_name <span class="op">=</span> strain_file_name[strain_file_name.rfind(<span class="st">&quot;/&quot;</span>) <span class="op">+</span> <span class="dv">1</span>:]
+        strain_name <span class="op">=</span> fna_glob_file_name[:fna_glob_file_name.find(<span class="st">&quot;.&quot;</span>)][<span class="dv">0</span>:<span class="dv">4</span>]
+        <span class="bu">print</span>(<span class="st">&quot;Reading sequences for strain {} (file {})...&quot;</span>.<span class="bu">format</span>(strain_name, strain_file_name))
+        sequences[strain_name] <span class="op">=</span> {}
+        <span class="cf">for</span> seq_record <span class="op">in</span> fasta_iter(strain_file_name):
+            seq_id <span class="op">=</span> seq_record[<span class="dv">0</span>].split(<span class="st">&quot; &quot;</span>)[<span class="dv">0</span>]
+            sequences[strain_name][seq_id] <span class="op">=</span> seq_record[<span class="dv">1</span>]
+
+    <span class="bu">print</span>(<span class="st">&quot;Using gff glob '{}'.&quot;</span>.<span class="bu">format</span>(args.gff_glob))
+    genes <span class="op">=</span> get_genes_from_gff(args.gff_glob)
+
+    <span class="cf">assert</span> <span class="bu">set</span>(sequences.keys()) <span class="op">==</span> <span class="bu">set</span>(genes.keys())
+
+    groups <span class="op">=</span> read_orthomcl_groups(args.in_file)
+    groups, ambiguous_groups, unambiguous_groups <span class="op">=</span> get_disambiguated_groups(groups, genes, verbose<span class="op">=</span><span class="va">True</span>)
+
+    one_based <span class="op">=</span> <span class="va">True</span>
+    start_pos_offset <span class="op">=</span> <span class="dv">1</span> <span class="cf">if</span> one_based <span class="cf">else</span> <span class="dv">0</span>
+
+    <span class="cf">for</span> group_id, group_members <span class="op">in</span> unambiguous_groups:
+        write_group_fasta_file(args.u_out_files_dir, genes, group_id, group_members, sequences, start_pos_offset)
+    <span class="cf">for</span> group_id, group_members <span class="op">in</span> ambiguous_groups:
+        write_group_fasta_file(args.a_out_files_dir, genes, group_id, group_members, sequences, start_pos_offset)
+
+
+<span class="kw">def</span> write_group_fasta_file(out_files_dir, genes, group_id, group_members, sequences, start_pos_offset):
+    fasta_strs <span class="op">=</span> []
+    <span class="cf">for</span> strain, gs <span class="op">in</span> group_members.items():
+        <span class="cf">for</span> gene_name <span class="op">in</span> gs:
+            gene <span class="op">=</span> genes[strain][gene_name]
+            start, end <span class="op">=</span> <span class="bu">min</span>(gene.start, gene.end), <span class="bu">max</span>(gene.start, gene.end)
+            gene_subseq <span class="op">=</span> sequences[strain][gene.seq_name][(start <span class="op">-</span> start_pos_offset):end]
+            <span class="cf">if</span> gene.reverse:
+                gene_subseq <span class="op">=</span> reverse_complement(gene_subseq)
+
+            header <span class="op">=</span> <span class="st">&quot;{}|{}|{}&quot;</span>.<span class="bu">format</span>(group_id, strain, gene.name)
+            fasta_strs.append(<span class="st">&quot;&gt;{}</span><span class="ch">\n</span><span class="st">{}</span><span class="ch">\n</span><span class="st">&quot;</span>.<span class="bu">format</span>(header, gene_subseq))
+    <span class="cf">with</span> <span class="bu">open</span>(<span class="st">&quot;{}/{}.fna&quot;</span>.<span class="bu">format</span>(out_files_dir, group_id), <span class="st">&quot;w&quot;</span>) <span class="im">as</span> out_file:
+        out_file.write(<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>.join(fasta_strs))
+
+
+<span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">'__main__'</span>:
+    main()
+
+<span class="co"># for f in group_fasta_files/u/group1000.fna; do</span>
+<span class="co">#     OUT=&quot;group_fasta_files/u/alns/&quot;${f#group_fasta_files/u/*}</span>
+<span class="co">#     echo &quot;$f - $OUT&quot;</span>
+<span class="co">#     qx --no-scratch -t 00:15:00 &quot;/home/agb/tools/prank -d=$f -o=$OUT -codon&quot;</span>
+<span class="co"># done</span></code></pre></div>
 
 </body>
 </html>
