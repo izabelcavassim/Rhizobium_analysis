@@ -1,7 +1,7 @@
 ---
 title: "README"
 author: "Maria Izabel cavassim Alves"
-date: "10/26/2017"
+date: "`r Sys.Date()`"
 output:
   md_document:
     variant: markdown_github
@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Introduction
-This document was created as a resource of the scripts used in the analysis of Rhizobium paper. 
+This document was created as a repository of the scripts used in the analysis of the Rhizobium paper. 
 
 ## Genome assembly: Spades
 
@@ -61,7 +61,7 @@ done
 ## Gene alignment: ClustalO
 ```{r, engine = 'python', eval = FALSE}
 
-# Group fasta files are aligned in a ???codon aware matter???. The clustalO runs with default parameters. 
+# Group fasta files are aligned in a codon aware matter. The clustalO runs with default parameters. 
 
 import argparse
 import io
@@ -159,7 +159,7 @@ if __name__ == '__main__':
 
 ## SNP calling
 ```{r, engine = 'python', eval = FALSE}
-# Script located in scripts_methods ld.py
+# Script located in scripts_methods rhizob_ld.py (author: Bjarni)
 ```
 
 ## Orthologous identification: ProteinOrtho
@@ -177,7 +177,7 @@ qx --no-scratch -t 4:00:00 -c 8 "/home/agb/tools/proteinortho_v5.13/proteinortho
 
 ```
 ## Orthologous identification: OrthoMCL
-OrthoMCL analysis were executed with PosgresSQL instead of mySQL. More details on how to run OrthoMCL using PostgreSQL can be found [here]<https://bitbucket.org/asger/orthomcl-postgresql>. The output of OrthoMCL it was then parsed into fasta files. The script ??disambiguate_orthomcl_groups.py?? is then used to filter for paralagous genes. 
+OrthoMCL analysis were executed with PosgresSQL instead of mySQL. More details on how to run OrthoMCL using PostgreSQL can be found in <https://bitbucket.org/asger/orthomcl-postgresql>. The output of OrthoMCL it was then parsed into fasta files. The script ```disambiguate_orthomcl_groups.py``` is then used to filter for paralagous genes. 
 
 ```{r, engine = 'python', eval = FALSE}
 
@@ -321,6 +321,3 @@ if __name__ == '__main__':
 # done
 
 ```
-
-
-

@@ -423,8 +423,6 @@ def colorful_heatmap(Matrix_counts):
 
 	print 'The shape of the matrix of counts is:', Matrix_counts.shape
 
-	#countries = {'gsA': 1, 'gsB':2, 'gsC':3, 'gsD':4, 'gsE': 5}
-
 	# Trying clustermap 
 	gsA = ['#386CB0']
 	gsB = ['#FB8072']
@@ -434,24 +432,13 @@ def colorful_heatmap(Matrix_counts):
 
 	colors = 33*gsA + 34*gsB + 116*gsC + 5*gsD + 11*gsE
 
-
-
 	#method='average', metric= 'hamming'
 	pandas_data_frame = pd.DataFrame(Matrix_counts[0:199, 0:Matrix_counts.shape[1]])
 
 	g = sns.clustermap(pandas_data_frame, row_cluster=True, row_colors = colors, xticklabels=True)
 	plt.setp(g.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)
 	plt.savefig('presence_absence_genospecies_total_rowcluster.pdf')
-	
-	#separate core and accessory genes:
-	#plt.pcolor(Matrix_counts, cmap=matplotlib.colors.ListedColormap(colors))
-	#plt.ylim([0,199])
-	#plt.title('Core and accessory genes of 200 strains')
-	#plt.xlim([0,18760])
-	#plt.xlabel('Genes')
-	#plt.ylabel('Strains')
-	#plt.savefig('presence_absence_genospecies_white')
-	#plt.show()
+
 Matrix_counts = np.genfromtxt("presence_absence_matrix_by_genospecies.csv", delimiter=",")
 colorful_heatmap(Matrix_counts = Matrix_counts) 
 
