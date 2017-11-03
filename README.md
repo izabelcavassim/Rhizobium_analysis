@@ -157,7 +157,7 @@ SNP calling
 -----------
 
 ``` python
-# Script located in scripts_methods ld.py
+# Script located in scripts_methods rhizob_ld.py (author: Bjarni)
 ```
 
 Orthologous identification: ProteinOrtho
@@ -321,4 +321,22 @@ if __name__ == '__main__':
 #     echo "$f - $OUT"
 #     qx --no-scratch -t 00:15:00 "/home/agb/tools/prank -d=$f -o=$OUT -codon"
 # done
+```
+
+Alignments of orthologous groups:Clustal Omega
+----------------------------------------------
+
+``` python
+
+#!/bin/bash
+for f in u/*.fna; do
+    OUT="u/normal_alns/"${f#u/*}
+    echo "$f - $OUT"
+    qx -A nchain --no-scratch -t 00:10:00 -m 1g "/home/agb/tools/clustalo-1.2.0 --outfmt=fasta --threads=1 --infile=$f > $OUT"
+done
+for f in a/*.fna; do
+    OUT="a/normal_alns/"${f#a/*}
+    echo "$f - $OUT"
+    qx -A nchain --no-scratch -t 01:00:00 -m 1g "/home/agb/tools/clustalo-1.2.0 --outfmt=fasta --threads=1 --infile=$f > $OUT"
+done
 ```
