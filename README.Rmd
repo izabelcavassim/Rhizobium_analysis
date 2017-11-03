@@ -324,7 +324,7 @@ if __name__ == '__main__':
 
 ## Alignments of orthologous groups:Clustal Omega
 
-```{r, engine = 'python', eval = FALSE}
+```{r, engine = 'bash', eval = FALSE}
 
 #!/bin/bash
 for f in u/*.fna; do
