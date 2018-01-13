@@ -13,6 +13,7 @@ from collections import Counter
 from collections import OrderedDict
 import itertools
 from matplotlib import pyplot as plt
+from sys import argv
 
 
 def parse_pop_map(file_name):
@@ -112,7 +113,7 @@ def ANI_figure():
 def kinship_all_genes(snps_file= '/Users/PM/Desktop/PHD_incomplete/Bjarnicode/new_snps.HDF5',
 				 meta_data = '/Users/PM/Desktop/PHD_incomplete/Bjarnicode/scripts/Rhizobium_soiltypes_new.txt',
                  min_maf=0.10,
-                 max_strain_num=198,
+                 max_strain_num=200,
                  save = False):
     """
     Calculates the kinship. 
@@ -142,6 +143,8 @@ def kinship_all_genes(snps_file= '/Users/PM/Desktop/PHD_incomplete/Bjarnicode/ne
         if len(strains) < max_strain_num:
             strain_mask = strain_index.get_indexer(strains)
 
+            print len(strain_mask)
+
             # Already normalized snps
             snps = data_g['norm_snps'][...]
             freqs = data_g['freqs'][...]
@@ -159,7 +162,11 @@ def kinship_all_genes(snps_file= '/Users/PM/Desktop/PHD_incomplete/Bjarnicode/ne
             counts_mat_snps[strain_mask] = counts_mat_snps_slice
 
     K_snps = K_snps / counts_mat_snps  # element-wise division
+
+    print np.diag(K_snps)
     print 'The mean of the GRM diagonal is %f' % np.mean(np.diag(K_snps))
+
+    K_snps = K_snps / np.diag(K_snps)
 
     tuple_index_kinship = (K_snps, ordered_strains)
 
@@ -177,6 +184,8 @@ def kinship_all_genes(snps_file= '/Users/PM/Desktop/PHD_incomplete/Bjarnicode/ne
 
     return(tuple_index_kinship)
 
+print kinship_all_genes()
+
 def plot_dirty_PCA(figure_fn = 'pca.png', k_figure_fn = 'kinship_heatmap.pdf', title=None,
                    figure_dir = '/project/NChain/faststorage/rhizobium/ld/figures',strains=None,
                    meta_data = '/Users/PM/Desktop/PHD_incomplete/Bjarnicode/scripts/Rhizobium_soiltypes_new.txt'):
@@ -185,6 +194,8 @@ def plot_dirty_PCA(figure_fn = 'pca.png', k_figure_fn = 'kinship_heatmap.pdf', t
     kinship_mat, strains = (kinship_all_genes())
 
     evals, evecs = linalg.eig(kinship_mat)  #PCA via eigen decomp
+
+    print evecs
     evals[evals<0]=0
     sort_indices = sp.argsort(evals,)
     ordered_evals = evals[sort_indices]
@@ -227,10 +238,14 @@ def plot_dirty_PCA(figure_fn = 'pca.png', k_figure_fn = 'kinship_heatmap.pdf', t
     var_exp = [(i / tot)*100 for i in sorted(evals, reverse=True)]
     cum_var_exp = np.cumsum(var_exp)
 
+    print var_exp
+
+    pl.xlim(-0.165,0.15)
+    pl.ylim(-0.165,0.15)
     pl.xlabel('PC1 (35.03%)')
     pl.ylabel('PC2 (22.34%)')
     pl.tight_layout()
-    pl.savefig('Final_PCA_SNP_level.pdf',format='pdf')
+    pl.savefig('Final_PCA_SNP_level_PC1_PC2.pdf',format='pdf')
 
     # Ploting the cumulative variance explained
     with pl.style.context('seaborn-whitegrid'):
@@ -255,6 +270,19 @@ def findInstances(list1, list2):
     """For each item in list1, return a list of offsets to its occurences in list2"""
     for i in list1:
         yield [pos for pos,j in enumerate(list2) if i==j]
+
+def shared_orthologous_genes():
+	import seaborn as sns
+	
+	presence_absence = pd.read_csv('/Users/PM/Desktop/scripts_Asger/Rhizobium_analysis/scripts_figures/presence_absence_matrix.txt', sep = '\t', header = 0, index_col = 0)
+
+	print presence_absence
+	dot_product = sp.dot(presence_absence, presence_absence.T)
+	print dot_product
+	ax = sns.heatmap(dot_product)
+	plt.savefig('test.pdf')
+
+print shared_orthologous_genes()
 
 
 def presence_absence_plot(figure = False):
@@ -288,7 +316,7 @@ def presence_absence_plot(figure = False):
 	strain_names = list(sorted_strain_names['Seq ID'])
 	Matrix_counts = np.zeros((200,len(gene_groups)))
 	lands = list(sorted_strain_names['Genospecies'])
-	countries = {'gsA': 1, 'gsB':2, 'gsC':3, 'gsD':4, 'gsE': 5}
+	countries = {'gsA': 1, 'gsB':1, 'gsC':1, 'gsD':1, 'gsE': 1}
 
 	paralogous = 0
 	histogram = list()
@@ -297,7 +325,7 @@ def presence_absence_plot(figure = False):
 	for gene in keys_sorted:
 		strains = gene_groups[gene]
 		
-		# Avoind paralogous:
+		# Not paralogous genes:
 		if len(strains) == len(set(strains)):
 			gene_group_wo_paralogous.append(gene)
   			index_match = list(findInstances(strains, strain_names))
@@ -306,8 +334,15 @@ def presence_absence_plot(figure = False):
   			for m in merged:      
    				Matrix_counts[m,count] = countries[lands[m]]
    			count += 1
+   		# Paralogous genes
    		else:
    			#print 'It is paralogous'
+   			print len(strains)
+   			index_match = list(findInstances(set(strains), strain_names))
+   			print len(index_match)
+   			histogram.append(len(index_match))
+   			merged = list(itertools.chain(*index_match))
+
    			for m in merged:      
    				Matrix_counts[m,count] = countries[lands[m]]
    			paralogous += 1
@@ -317,9 +352,9 @@ def presence_absence_plot(figure = False):
 	print Counter(histogram)
 
 	if figure == True:
-		arr = plt.hist(histogram, 50, facecolor='darkblue', alpha=0.75)
-		for i in range(50):
-			plt.text(arr[1][i],arr[0][i],str(arr[0][i]), fontsize=7, rotation = 'vertical', va = 'top')
+		arr = plt.hist(histogram, 50, facecolor='black', alpha=0.75)
+		#for i in range(50):
+		#	plt.text(arr[1][i],arr[0][i],str(arr[0][i]), fontsize=7, rotation = 'vertical', va = 'top')
 
 		plt.xlabel('Number of strains contain in a gene', fontsize= 8)
 		plt.ylabel('Frequency of genes', fontsize= 8)
@@ -330,12 +365,12 @@ def presence_absence_plot(figure = False):
 	print 'The shape of the matrix of counts is:', Matrix_counts.shape
 
 	# Saving the matrix
-	np.savetxt("presence_absence_matrix_by_genospecies.csv", Matrix_counts, delimiter=",")  
+	np.savetxt("presence_absence_matrix_by_genospecies_zeros_ones.csv", Matrix_counts, delimiter=",")  
 
 	return(gene_groups)  
 
 
-#print presence_absence_plot(figure = False)
+#print presence_absence_plot(figure = True)
 
 def define_combinations(genospecies):
 	n = len(genospecies)
@@ -439,8 +474,8 @@ def colorful_heatmap(Matrix_counts):
 	plt.setp(g.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)
 	plt.savefig('presence_absence_genospecies_total_rowcluster.pdf')
 
-Matrix_counts = np.genfromtxt("presence_absence_matrix_by_genospecies.csv", delimiter=",")
-colorful_heatmap(Matrix_counts = Matrix_counts) 
+#Matrix_counts = np.genfromtxt("presence_absence_matrix_by_genospecies.csv", delimiter=",")
+#colorful_heatmap(Matrix_counts = Matrix_counts) 
 
 def pca_gene_level(Matrix_counts, meta_data = '/Users/PM/Desktop/PHD_incomplete/Bjarnicode/scripts/Rhizobium_soiltypes_new.txt'):
 
@@ -496,6 +531,205 @@ def pca_gene_level(Matrix_counts, meta_data = '/Users/PM/Desktop/PHD_incomplete/
 
 #Matrix_counts = np.genfromtxt("presence_absence_matrix_zeros_ones.csv", delimiter=",")
 #pca_gene_level(Matrix_counts)
+
+
+def gc_content(sequence):
+	#1: GC content per genes, split by core and accessory genes
+	#2: GC content per genospecies, split by core and accessory genes
+
+	sequence = np.reshape(sequence, sequence.shape[0]*sequence.shape[1])
+
+	sequence = sequence.tolist() 
+	GC = 0
+	for i in sequence:
+		if i == 2 or i == 3:
+			GC += 1
+	return GC/float(len(sequence))
+
+
+def GC_content_per_genospecies(snps_hdf5_file = 'C:/Users/MariaIzabel/Desktop/MASTER/PHD/Bjarnicode/new_snps.HDF5', 
+                                 seq_file = 'C:/Users/MariaIzabel/Desktop/MASTER/PHD/Bjarnicode/snps.hdf5',
+                                 fig_dir = 'C:/Users/MariaIzabel/Desktop/MASTER/PHD/Bjarnicode/figures',
+                                 #geno_species=[argv[1], argv[1]], bin_size=0.2,
+                                 gt_hdf5_file='C:/Users/MariaIzabel/Desktop/MASTER/PHD/Bjarnicode/snps.hdf5'):
+	pop = parse_pop_map()
+	pop_map = pop.keys()
+	ct_array = pop.values()
+
+	h5f = h5py.File(gt_hdf5_file)
+	ag = h5f['alignments']
+	gene_big_groups = sorted(ag.keys())
+	gene_groups_accessory = list()
+
+	# Names
+	strains_names = sorted(pop_map, key=lambda x: pop[x]['genospecies'])
+	print 'These are the strains evaluated', strains_names
+	strains_names.remove('3859')
+	strains_names.remove('3260')
+	strains_list = strains_names
+
+	gs_content_results = []
+	number_of_strains = []
+
+	# Taking just the accesory genes genes
+	for gene in gene_big_groups:
+		if len(ag[gene]['strains']) < 198:
+			gene_groups_accessory.append(gene)
+
+	# Taking just the core genes
+	for gene in gene_groups_accessory:
+
+		# Gene strain list
+		strains_list = ag[gene]['strains'][...]
+
+		# Looking at specific genospecies
+		gs_list = []
+		for strain in strains_list:
+			gs_list.append(pop[strain[:4]]['genospecies'])
+	
+		# Transforming the strain list in array
+		strains_list = np.asarray(strains_list)
+		gs_filter1, gs_filter2 = [sp.in1d(gs_list, gs) for gs in geno_species]
+
+		# Extracting the nucleotide sequences
+		g1 = ag[gene]
+		g1 = g1['nsequences'][...]
+
+		# Filtering by genospecies
+		g1_gno = g1[gs_filter1,:]
+
+		if g1_gno.shape[0] != 0:
+			gs_content_results.append(gc_content(g1_gno))
+			number_of_strains.append(g1_gno.shape[0])
+		#print ' These are the strains belonging to this genospecies', g1_gno
+		name = 'GC_' + argv[1] + '.csv'
+		np.savetxt(name, np.c_[gs_content_results, number_of_strains], delimiter=",")
+	
+
+def GC_content_per_gene(snps_hdf5_file = '/Users/PM/Desktop/PHD_incomplete/Bjarnicode/new_snps.HDF5',
+                                 seq_file = '/Users/PM/Desktop/PHD_incomplete/Bjarnicode/snps.hdf5',
+                                 fig_dir = '/Users/PM/Desktop/PHD_incomplete/Bjarnicode/figures',
+                                 geno_species='gsA', bin_size=0.2,
+                                 meta_data = '/Users/PM/Desktop/PHD_incomplete/Bjarnicode/scripts/Rhizobium_soiltypes_new.txt',
+                                 gt_hdf5_file='/Users/PM/Desktop/PHD_incomplete/Bjarnicode/snps.hdf5'):
+	pop = parse_pop_map(meta_data)
+	print pop
+	pop_map = pop.keys()
+	ct_array = pop.values()
+
+	h5f = h5py.File(gt_hdf5_file)
+	print h5f.keys()
+	ag = h5f['alignments']
+	gene_big_groups = sorted(ag.keys())
+	core_gene_groups = list()
+	accessory_gene_groups = list()
+
+	#gene_big_groups = {}
+	#with open('/Users/PM/Desktop/PHD_incomplete/Methods/PCA_gene_level_all_strains/proteinortho1to1.groups.txt') as f:
+	#	for line in f:
+	#		temp = line.split(':')
+	#		group_name = temp[0]
+	#		members = temp[1].split(' ')
+	#		members = members[1::]
+	#		new_members = list()
+	#		for i in members:
+	#			new_members.append(int(i[0:4]))
+	#		if group_name not in gene_big_groups:
+	#			gene_big_groups[group_name] = new_members # creating a list
+
+	# Names
+	strains_names = sorted(pop_map, key=lambda x: pop[x]['genospecies'])
+	print 'These are the strains evaluated', strains_names
+	strains_names.remove('3859')
+	strains_names.remove('3260')
+
+	
+	# Taking just the core genes and paralogous
+	for gene in gene_big_groups:
+		#gene = unicode(gene[5::], "utf-8")
+			
+		strains_gene = ag[gene]['strains'][...]
+		#Deleting paralogous genes 
+		strains_gene = [i.split('-', 1)[0] for i in strains_gene]
+		strains_gene = set(strains_gene)
+
+		if len(strains_gene) > 197:
+			core_gene_groups.append(gene)
+		else:
+			accessory_gene_groups.append(gene)
+
+	print 'Starting core gene groups', len(core_gene_groups)
+	results_core = []
+	gene_name_core = []
+	gene_members = []
+
+	# Transforming the strain list in array
+	strain_index = pd.Index(strains_names)
+
+	for gg1 in core_gene_groups:
+		print 'Working on gene group: %s'%gg1
+		g1 = ag[gg1]
+		strains_gene = g1['strains'][...]
+
+		#Deleting paralogous genes 
+		strains_gene = [i.split('-', 1)[0] for i in strains_gene]
+
+		# Indexing the names
+		strain_mask = set(strain_index.get_indexer(sorted(strains_gene)))
+		strain_mask = list(strain_mask)
+
+		gene_members.append(len(strain_mask))
+		g1 = g1['nsequences'][...]
+		print g1.shape
+
+		# Filtering for paralogous
+		g1 = g1[strain_mask,:]
+
+		print g1.shape
+		gene_name_core.append(gg1)
+		results_core.append(gc_content(g1))
+
+		data1 = np.array([gene_name_core, results_core, gene_members])
+		data1 = data1.T
+	np.savetxt("GC_core_genes_test.csv", data1, fmt= "%s", delimiter=",")
+
+	print 'Starting accessory gene groups', len(accessory_gene_groups)
+	results_accessory = []
+	gene_name_accessory = []
+	gene_members = []
+	for gg1 in accessory_gene_groups:
+		print 'Working on gene group: %s'%gg1
+		g1 = ag[gg1]
+
+		strains_gene = g1['strains'][...]
+
+		#Deleting paralogous genes 
+		strains_gene = [i.split('-', 1)[0] for i in strains_gene]
+
+		strains_gene = sorted(strains_gene)
+
+		indexes = [0]
+		for i in range(1, len(strains_gene)):
+			previous = strains_gene[i-1]
+			if strains_gene[i] != previous:
+				indexes.append(i)	
+
+		gene_members.append(len(set(strains_gene)))
+		g1 = g1['nsequences'][...]
+
+		# Filtering for paralogous
+		g1 = g1[indexes,:]
+
+		gene_name_accessory.append(gg1)
+		results_accessory.append(gc_content(g1))
+		data2 = np.array([gene_name_accessory, results_accessory, gene_members])
+		data2 = data2.T
+
+	np.savetxt("GC_accessory_genes_test.csv", data2, fmt= "%s", delimiter = ",")
+
+	
+#print GC_content_per_genospecies()
+#print GC_content_per_gene()
     
 
 

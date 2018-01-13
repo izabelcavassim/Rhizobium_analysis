@@ -243,7 +243,7 @@ def call_variants(gt_hdf5_file='/project/NChain/faststorage/rhizobium/ld/snps.hd
         if len(strains)<len(strains_list):
             print 'Evidence for paralogs/CNVs'
             print strain_counts
-            print '%d strains have unique gene copies'
+            print '%d strains have unique gene copies', %in (len(strains))
         elif len(seq_ids)>min_num_strains:
             strains = map(lambda x: x.split('-')[0], seq_ids)
                         
@@ -254,6 +254,7 @@ def call_variants(gt_hdf5_file='/project/NChain/faststorage/rhizobium/ld/snps.hd
             nt_mat = sp.transpose(nt_mat)
             bad_rows_filter = (num_vars<5)*no_gaps_no_missing
             if sp.sum(bad_rows_filter)>0:
+                print 'passed bad filter control'
                 raw_snps = nt_mat[bad_rows_filter]
                 
                 #Calculate nucleotide diversity and ani
