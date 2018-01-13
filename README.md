@@ -52,6 +52,48 @@ for f in */*.contigs.fna; do
 done
 ```
 
+``` python
+#Same analysis using gwf:
+
+from gwf import Workflow
+import glob
+import os
+
+gwf = Workflow()
+
+def prokka_run(directory, ID):
+    outdir = f'{directory}/{ID}'
+    infile = f'{directory}/{ID}.contigs.fna'
+    inputs = [f'{directory}/{ID}.contigs.fna']
+    outputs = [f'{outdir}/{ID}{x}' for x in ['.gff', '.gbk', '.fna', '.faa']]
+    #print('\n'.join([outdir, infile, "".join(outfiles)]))
+    options = {
+        #'inputs': [infile],
+        #'outputs': outfiles,
+        'memory': '4g',
+        'cores': '4',
+        'walltime': '10:00:00',
+        'account': 'NChain'
+    }
+
+    spec = f"/project/NChain/faststorage/tools/prokka-1.12/bin/prokka --outdir {outdir} --prefix {ID}  {infile}"
+    print(spec)
+
+    return inputs, outputs, options, spec
+
+# For each fasta file run prokka, many output files are generated: .gff, .gbk, .fna, .faa and so on.
+# Find all the subdirectories existent in that directory
+d = '.'
+folders = [os.path.join(d, o) for o in os.listdir(d) 
+                    if os.path.isdir(os.path.join(d,o))]
+
+for strain in folders: 
+    print(strain)
+    if strain[2] == '3':
+        workflow_name = 'prokka{}'.format(strain[2:6])
+        gwf.target_from_template(workflow_name, prokka_run(directory = strain, ID = strain[2::])) 
+```
+
 Gene alignment: ClustalO
 ------------------------
 
