@@ -205,7 +205,42 @@ if __name__ == '__main__':
 
 ## SNP calling
 ```{r, engine = 'python', eval = FALSE}
-# Script located in scripts_methods rhizob_ld.py (author: Bjarni)
+# Script first made by Asger (ld.py), and then improved by Bjarni (rhizob_ld.py ). Files are in scripts_methods.
+
+def build_snp_matrices(in_glob, in_format, out_dir, verbose=False, sort_by_strain=True, replace_nans_by_mean=True):
+    for i, in_file_name in enumerate(glob.iglob(in_glob)):
+        aln = AlignIO.parse(in_file_name, in_format).__next__()
+        print("Processing family {} ({})...".format(i, len(aln)))
+
+        aln_matrix = np.array([list(str(seq.seq)) for seq in aln], dtype=np.character, order="F")
+
+        alignment_length = aln_matrix.shape[1]
+
+        if sort_by_strain:
+            # In case a strain has multiple members in the group, use both strain and gene id as the sort key.
+            strains = ["".join(seq.id.split("|")[1:]) for seq in aln]
+            aln_matrix = aln_matrix[np.argsort(strains), :]
+            # For the strain array that is saved with the SNP matrix, don't include the gene id in the strain list.
+            strains = sorted([seq.id.split("|")[1] for seq in aln])
+        else:
+            strains = [seq.id.split("|")[1] for seq in aln]
+
+        matrix, positions, minor_frequencies = build_complete_matrix(aln_matrix)
+
+        if matrix is None or matrix.shape[1] == 1:
+            if verbose:
+                print("\tFamily skipped because there is zero or 1 SNPs.")
+            continue
+
+        if replace_nans_by_mean:
+            # Replace the gaps/dashes (NaNs) in each column by the column average.
+            replace_column_nans_by_mean(matrix)
+
+        out_file_name = "{}{}.snps.npz".format(out_dir, in_file_name[in_file_name.rfind("/"):])
+        np.savez_compressed(out_file_name, matrix=matrix, positions=positions, minor_frequencies=minor_frequencies,
+                            alignment_length=alignment_length, strains=strains)
+        if verbose:
+            print("\tSNPs saved as {}.".format(out_file_name))
 ```
 
 ## Orthologous identification: ProteinOrtho
@@ -383,4 +418,67 @@ for f in a/*.fna; do
     echo "$f - $OUT"
     qx -A nchain --no-scratch -t 01:00:00 -m 1g "/home/agb/tools/clustalo-1.2.0 --outfmt=fasta --threads=1 --infile=$f > $OUT"
 done
+```
+
+## Useful bash commands
+
+```{r, engine = 'bash', eval = FALSE}
+
+# Changing file names:
+
+for file in *.fas; do mv "$file" "${file/_0_1p_scaffolds.fas/.contigs.fna}"; done
+
+# Creating a folder for each file:
+
+for file in *.contigs.fna; do
+  suffix=".contigs.fna"
+  dir=${file%$suffix}
+  echo $dir
+  mkdir -p "./$dir" &&
+  cp -iv "$file" "./$dir"
+done
+
+# Activate the gwf envinroment 
+gwf config set backend slurm
+
+# Running prokka with careful parameters 
+--metagenome      Improve gene predictions for highly fragmented genomes (default OFF)
+--proteins [X]    Fasta file of trusted proteins to first annotate from (default '') 
+The symbiotic fasta file was addedls
+
+
+# Remove all folders of a directory
+rm -R -- */
+
+# Change the permission of files
+chmod 777 filename
+
+# Running proteinortho:
+#!/bin/bash                                                                                                                                            
+# For each protein fasta file, go through each step of proteinortho, with synteny flag enabled                                                         
+
+qx --no-scratch -t 00:30:00 -c 16 -w "/project/NChain/faststorage/tools/proteinortho_v5.16_final/proteinortho5.pl -cpus=16 -synteny -step=1 genomes/da\
+ta/*.faa"
+
+for i in {1..199}; do
+    qx --no-scratch -t 24:00:00 -c 4 "/project/NChain/faststorage/tools/proteinortho_v5.16_final/proteinortho5.pl  -cpus=4 -synteny -step=2 -jobs=$i/2\
+00 genomes/data/*.faa"
+done
+
+qx --no-scratch -t 4:00:00 -c 8 "/project/NChain/faststorage/tools/proteinortho_v5.16_final/proteinortho5.pl  -cpus=8 -synteny -step=3 genomes/data/*.\
+faa"
+
+## Parsing proteinortho output
+
+
+## Aligning using clustalo (fix code, i need to source python)
+#!/bin/bash                                                                                                                                            
+for f in data_test_clustaol/group*.fna; do
+    OUT="group_alns"/${f#*/*}
+    echo "$f - $OUT"
+    qx -A nchain --no-scratch -t 00:10:00 -m 1g "/home/mica16/anaconda2/bin/python codon_aware_clustal.py $f ./project/clover/faststorage/tools/clustalo > $OUT"
+done
+
+## Detecting SNPs
+
 ```
