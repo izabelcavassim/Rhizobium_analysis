@@ -104,8 +104,23 @@ for strain in folders:
 ```
 
 
-## Gene alignment: Clustalo
+## Orthologous identification: ProteinOrtho
+```{r, engine = 'bash', eval = FALSE}
+#!/bin/bash
+# For each protein fasta file, go through each step of proteinortho, with synteny flag enabled
 
+qx --no-scratch -t 00:30:00 -c 16 -w "/home/agb/tools/proteinortho_v5.13/proteinortho5.pl -cpus=16 -synteny -step=1 data/*.faa"
+
+for i in {1..199}; do
+    qx --no-scratch -t 24:00:00 -c 4 "/home/agb/tools/proteinortho_v5.13/proteinortho5.pl -cpus=4 -synteny -step=2 -startat=$i -stopat=$i data/*.faa"
+done
+
+qx --no-scratch -t 4:00:00 -c 8 "/home/agb/tools/proteinortho_v5.13/proteinortho5.pl -cpus=8 -synteny -step=3 data/*.faa"
+
+```
+
+
+## Gene alignment: Clustalo
 ```{r, engine = 'bash', eval = FALSE}
 #!/bin/bash                                                                                                          
 for f in data_test_clustaol/group*.fna; do
@@ -216,23 +231,9 @@ if __name__ == '__main__':
     main()
 ```
 
-## Orthologous identification: ProteinOrtho
-```{r, engine = 'bash', eval = FALSE}
-#!/bin/bash
-# For each protein fasta file, go through each step of proteinortho, with synteny flag enabled
-
-qx --no-scratch -t 00:30:00 -c 16 -w "/home/agb/tools/proteinortho_v5.13/proteinortho5.pl -cpus=16 -synteny -step=1 data/*.faa"
-
-for i in {1..199}; do
-    qx --no-scratch -t 24:00:00 -c 4 "/home/agb/tools/proteinortho_v5.13/proteinortho5.pl -cpus=4 -synteny -step=2 -startat=$i -stopat=$i data/*.faa"
-done
-
-qx --no-scratch -t 4:00:00 -c 8 "/home/agb/tools/proteinortho_v5.13/proteinortho5.pl -cpus=8 -synteny -step=3 data/*.faa"
-
-```
-
 
 ## SNP calling
+usage: python snp_no_structure_detection.py 
 ```{r, engine = 'python', eval = FALSE}
 # Script first made by Asger (ld.py), and then improved by Bjarni (rhizob_ld.py ). Files are in scripts_methods.
 
@@ -492,6 +493,9 @@ print(build_snp_matrices(in_glob = "/home/mica16/NChain/faststorage/rhizobium/or
                        
 ```
 
+
+
+
 ## Orthologous identification: OrthoMCL
 OrthoMCL analysis were executed with PosgresSQL instead of mySQL. More details on how to run OrthoMCL using PostgreSQL can be found in <https://bitbucket.org/asger/orthomcl-postgresql>. The output of OrthoMCL it was then parsed into fasta files. The script ```disambiguate_orthomcl_groups.py``` is then used to filter for paralagous genes. 
 
@@ -639,6 +643,12 @@ if __name__ == '__main__':
 ```
 
 ## Corrected SNPs
+
+## Intergenic LD without population structure
+
+
+## Intergenic LD with population structure
+
 
 ## Useful bash commands
 
