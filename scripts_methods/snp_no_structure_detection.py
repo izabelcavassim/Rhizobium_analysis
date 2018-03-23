@@ -6,7 +6,7 @@ from collections import namedtuple
 #import bottleneck as bn
 import numpy as np
 from Bio import AlignIO
-from scipy import linalg
+#from scipy import linalg
 
 
 def get_encoded_non_bi_allelic_columns(strain_to_seq_map, locus):
@@ -219,12 +219,13 @@ def build_snp_matrices(in_glob, in_format, out_dir, verbose=False, sort_by_strai
         print("Processing family {} ({})...".format(i, len(aln)))
 
         aln_matrix = np.array([list(str(seq.seq)) for seq in aln], dtype=np.character, order="F")
-        print(aln)
+        #print(aln_matrix)
         alignment_length = aln_matrix.shape[1]
 
         if sort_by_strain:
             # In case a strain has multiple members in the group, use both strain and gene id as the sort key.
             strains = ["".join(seq.id.split("|")[1:]) for seq in aln]
+            print(strains)
             aln_matrix = aln_matrix[np.argsort(strains), :]
             # For the strain array that is saved with the SNP matrix, don't include the gene id in the strain list.
             strains = sorted([seq.id.split("|")[1] for seq in aln])
@@ -241,17 +242,18 @@ def build_snp_matrices(in_glob, in_format, out_dir, verbose=False, sort_by_strai
         if replace_nans_by_mean:
             # Replace the gaps/dashes (NaNs) in each column by the column average.
             replace_column_nans_by_mean(matrix)
+        #print(matrix)
 
         out_file_name = "{}{}.snps.npz".format(out_dir, in_file_name[in_file_name.rfind("/"):])
-        print(out_file_name)
+        #print(out_file_name)
         np.savez_compressed(out_file_name, matrix=matrix, positions=positions, minor_frequencies=minor_frequencies,
                             alignment_length=alignment_length, strains=strains)
         if verbose:
             print("\tSNPs saved as {}.".format(out_file_name))
 
 
-print(build_snp_matrices(in_glob = "/home/mica16/NChain/faststorage/rhizobium/orthologs_proteinortho/group_alns/*.fna", in_format = "fasta", out_dir = "./group_snps", verbose=True, sort_by_strain=True,
-                       replace_nans_by_mean=False))
+print(build_snp_matrices(in_glob = "/Users/PM/Desktop/New_data/group_alns/*.fna", in_format = "fasta", out_dir = "/Users/PM/Desktop/New_data/", verbose=True, sort_by_strain=True,
+                       replace_nans_by_mean=True))
 
 # if __name__ == '__main__':
 #     parser = argparse.ArgumentParser()

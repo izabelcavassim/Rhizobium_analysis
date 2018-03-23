@@ -1,0 +1,278 @@
+---
+title: "Figures_paper"
+author: "Maria Izabel cavassim Alves"
+date: "2/28/2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Ploting the statistics of each assembly
+
+```{r}
+library(gridExtra)
+setwd('/Users/PM/Desktop/scripts_Asger/Rhizobium_analysis/scripts_figures')
+# Colour blind friendly:
+quast_results = read.table('/Users/PM/Dropbox/Rhizobium_final_share/Working_tables/Assembly_reports/jigome_quast_report.tsv', header = T, sep = '\t')
+
+# Average across the data (Jigome assembly)
+Jigome_avg = apply(quast_results[,2:ncol(quast_results)],1,mean,na.rm=TRUE)
+
+spades_results = read.table('/Users/PM/Dropbox/Rhizobium_final_share/Working_tables/Assembly_reports/spades_quast.tsv', header = T, sep = '\t')
+
+# Average across the data (Spades-previous assembly)
+Spades_avg = apply(spades_results[,2:ncol(spades_results)],1,mean,na.rm=TRUE)
+
+# Average across the data (PacBio assembly)
+pacbio_results = read.table('/Users/PM/Dropbox/Rhizobium_final_share/Working_tables/Assembly_reports/pacbio_quast_report.tsv', header = T, sep = '\t')
+
+# Excluding the bad strain:
+pacbio_results = pacbio_results[,-6]
+PacBio_avg = apply(pacbio_results[,2:ncol(pacbio_results)],1,mean,na.rm = T)
+
+bla = as.data.frame(cbind(Jigome_avg, Spades_avg, PacBio_avg))
+bla = cbind(Stats = c("Total length (>= 0 bp)",
+                    "Total length (>= 10000 bp)",
+                    "Total length (>= 5000 bp)",
+                    "Total length (>= 100000 bp)",
+                    "Total length (>= 250000 bp)",
+                    "Total length (>= 500000 bp)",
+                    "Largest contig",
+                    "Total length",
+                    "GC (%)",
+                    "N50",
+                    "N75",
+                    "L50",
+                    "L75"), bla)
+
+write.csv( bla, 'summary_quast_assemblies.csv')
+# The palette with grey:
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+
+Assemblies <- c(rep(c("Spades", "Jigome Re-assembly", "Pacbio"), each = 6))
+
+                   # "Largest contig",
+                    #"Total length",
+                    #"GC (%)",
+                    #"N50",
+                    #"N75",
+                    #"L50",
+                    #"L75")
+Category <- c(rep(c("Total length (>= 0 bp)",
+                    "Total length (>= 10000 bp)",
+                    "Total length (>= 5000 bp)",
+                    "Total length (>= 100000 bp)",
+                    "Total length (>= 250000 bp)",
+                    "Total length (>= 500000 bp)"), times = 3))
+Frequency <- c(Spades_avg[1:6], Jigome_avg[1:6], PacBio_avg[1:6])
+
+Data  <- data.frame(Assemblies, Category, Frequency)
+
+#library(ggplot2)
+p <- ggplot(Data, aes(x = Assemblies, y = Frequency, label = Frequency, fill = Category)) +
+  geom_bar(position = "dodge", stat="identity")  +
+  scale_fill_manual(values=cbPalette) + 
+  theme_bw() #+ scale_fill_grey(start = 0, end = .9)
+
+p <- p + guides(fill=guide_legend(title="Stats"))
+
+p
+
+############# Other measures
+
+Assemblies <- c(rep(c("Spades", "Jigome Re-assembly", "Pacbio"), each = 4))
+
+                   # "Largest contig",
+                    #"Total length",
+                    #"GC (%)",
+                    #"N50",
+                    #"N75",
+                    #"L50",
+                    #"L75")
+Category <- c(rep(c("Largest contig",
+                    "Total length",
+                    "N50",
+                    "N75"), times = 3))
+Frequency <- c(Spades_avg[c(7,8,10,11)], Jigome_avg[c(7,8,10,11)], PacBio_avg[c(7,8,10,11)])
+
+Data2  <- data.frame(Assemblies, Category, Frequency)
+
+#library(ggplot2)
+p2 <- ggplot(Data2, aes(x = Assemblies, y = Frequency, label = Frequency, fill = Category)) +
+  geom_bar(position = "dodge", stat="identity")  +
+  scale_fill_manual(values=cbPalette) + theme_bw()
+  #geom_text(size = 3, position = position_stack(vjust = 0.6)) + theme_classic()   
+
+#+ scale_fill_grey(start = 0, end = .9)
+
+p2 <- p2 + guides(fill=guide_legend(title="Stats"))
+
+p2
+
+
+##########
+
+Assemblies <- c(rep(c("Spades", "Jigome Re-assembly", "Pacbio"), each = 3))
+
+                   # "Largest contig",
+                    #"Total length",
+                    #"GC (%)",
+                    #"N50",
+                    #"N75",
+                    #"L50",
+                    #"L75")
+Category <- c(rep(c("GC (%)",
+                    "L50",
+                    "L75"), times = 3))
+Frequency <- c(Spades_avg[c(9,12,13)], Jigome_avg[c(9,12,13)], PacBio_avg[c(9,12,13)])
+
+Data3  <- data.frame(Assemblies, Category, Frequency)
+
+#library(ggplot2)
+p3 <- ggplot(Data3, aes(x = Assemblies, y = Frequency, label = Frequency, fill = Category)) +
+  geom_bar(position = "dodge", stat="identity")  +
+  scale_fill_manual(values=cbPalette) + theme_bw()
+  #geom_text(size = 3, position = position_stack(vjust = 0.6)) + theme_classic()   
+
+#+ scale_fill_grey(start = 0, end = .9)
+
+p3 <- p3 + guides(fill=guide_legend(title="Stats"))
+
+p3
+
+grid.arrange(p, p2, p3)
+
+## Assembly statistics using QUAST:
+
+```
+
+
+## Discordance score
+```{r}
+
+gc_sinteny = read.csv('/Users/PM/Desktop/scripts_Asger/Rhizobium_analysis/scripts_figures/myproject.poff.izabel', sep = ';')
+stats2 = read.csv('/Users/PM/Desktop/PHD_incomplete/Methods/Painting_chromosome/Incongruent_phylogenies.csv', header = T)
+stats2$gene = sub(".nw", "", stats2$gene)
+
+test = merge(gc_sinteny, stats2, by.x= 'ID', by.y='gene')
+write.csv(file = '/Users/PM/Desktop/scripts_Asger/Rhizobium_analysis/scripts_figures/presence_absence_extra_data.csv', test[,c('ID', 'GC3s', 'Synteny', 'discordance_marni', 'n_genospecies', 'n_members')])
+
+# The trees must have at least 2 genospecies:
+stats2 = stats[stats$n_genospecies >= 2,]
+plot(table(stats2$discordance), main = 'Discordance distribution', xlab = 'Discordance score', ylab = 'Gene counts', xlim = c(0,79))
+text(y = 2500, x = 1, as.character(round(table(stats2$discordance)[1]/nrow(stats2), 3))) 
+text(y = 4000, x = 2, as.character(round(table(stats2$discordance)[2]/nrow(stats2), 3))) 
+text(y = 2000, x = 3, as.character(round(table(stats2$discordance)[3]/nrow(stats2), 3)))
+
+
+
+# GGplot version
+disc = as.data.frame(table(stats2$discordance_marni))
+colnames(disc) = c('Discordance_score', 'Gene_counts')
+ggplot(disc, aes(x=Discordance_score,y=Gene_counts)) + geom_bar(stat='identity') + theme_bw()
+
+
+
+```
+## Presence_absence 
+
+```{r}
+
+#{'gsAgsCgsDgsE': 381, 'gsAgsBgsD': 24, 'gsAgsBgsE': 55, 'gsAgsBgsCgsD': 322, 'gsAgsBgsCgsE': 406, 'gsAgsBgsC': 737, 'gsDgsE': 119, 'gsBgsD': 79, 'gsBgsE': 120, 'gsBgsC': 1522, 'gsCgsE': 841, 'gsCgsD': 539, 'gsBgsCgsD': 199, 'gsBgsCgsE': 257, 'gsAgsE': 175, 'gsAgsD': 71, 'gsAgsDgsE': 70, 'gsAgsC': 1544, 'gsAgsB': 378, 'gsBgsCgsDgsE': 309, 'gsA': 1245, 'gsC': 5309, 'gsB': 1169, 'gsE': 575, 'gsD': 249, 'gsAgsCgsE': 299, 'gsAgsCgsD': 198, 'gsAgsBgsCgsDgsE': 5686, 'gsCgsDgsE': 331, 'gsBgsDgsE': 30, 'gsAgsBgsDgsE': 30}
+
+
+# core A: 5045, B: 5915, C: 4766, D: 6321, E: 5735 
+# gsA = 5686
+
+#Total amount of genes present in each genospecies 
+# 'gsA': 11621, 'gsC': 18880, 'gsB': 11323, 'gsE': 9684, 'gsD': 8637}
+
+#Total amount of genes present by the core of each genospecies 
+A = 5045
+B = 5915
+C = 4766
+D = 6321
+E = 5735
+
+A_accessory =  4690
+A_private = 1245 
+B_accessory = (24 + 55 + 322 + 406 + 737 + 79 + 120 + 1522 + 199 + 257 + 378 + 309 + 30 + 30)
+B_private = 1169
+C_accessory = (381 + 322 + 406 + 737 + 1522 + 841 + 539 + 199 + 257 + 1544 + 309 + 299 + 198 + 331)
+C_private = 5309
+D_accessory = (381 + 24 + 322 + 119 + 79 + 539 + 199 + 71 + 70 + 309 + 198 + 331 + 30 + 30 )
+D_private = 249 
+E_accessory = (381 + 55 + 406 + 119 + 120 + 841 + 257 + 175 + 70 + 309 + 299 + 331 + 30 + 30)
+E_private = 575
+
+ca = c(5778, 1082, 304+22+47+338+392+738+122+61+66+1141+332+258+179+31)
+Genospecies     <- c(rep(c("A", "B", "C", "D", "E"), each = 4))
+Category <- c(rep(c("Core", "Private Accessory","Accessory", "Private Core"), times = 5))
+Frequency <- c(5778, 1063, 4031, 19, 5778, 898-82, 4176,82, 5778, 3567-27, 6901,27, 5778, 202-37, 2534, 37, 5778, 447-41, 263, 41)
+Data      <- data.frame(Genospecies, Category, Frequency)
+
+#library(ggplot2)
+ggplot(Data, aes(x = Genospecies, y = Frequency, label = Frequency, fill = Category)) +
+  geom_bar(stat = "identity") +
+  geom_text(size = 3, position = position_stack(vjust = 0.6)) + theme_classic()
+
+
+
+```
+
+## GC content
+
+```{r}
+
+setwd('/Users/PM/Desktop/scripts_Asger/Rhizobium_analysis/scripts_figures')
+
+library(ggplot2)
+library(dplyr)
+
+GC_core = read.csv('GC_core_genes_test.csv', header = F, sep =',')
+GC_core$Gene_type = rep('Core', nrow(GC_core))
+colnames(GC_core) = c('Gene', 'GC content', 'GC3', 'Members', 'Gene type')
+
+GC_accessory = read.csv('GC_accessory_genes_test.csv', header = F, sep =',')
+GC_accessory$Gene_type = rep('Accessory', nrow(GC_accessory))
+colnames(GC_accessory) = c('Gene', 'GC content', 'GC3', 'Members', 'Gene type')
+
+GC_total = rbind(GC_core, GC_accessory)
+
+ggplot(GC_total, aes(`GC content`, fill = `Gene type`)) + 
+  geom_density(alpha = 0.2)  + 
+  theme_bw() + 
+  theme(text = element_text(size=17)) 
+  
+# Finding each distribution median:
+cdat <- aggregate(`GC content` ~ `Gene type`, data = GC_total, median)
+
+# Interleaved histograms
+p <- ggplot(GC_total, aes(x=`GC content`, fill= `Gene type`)) +
+    geom_histogram(binwidth=.008, alpha=.7, position="identity") + 
+    theme_bw() + ylim(0,1200) + theme(legend.position = c(0.15, 0.81)) +
+    theme(text = element_text(size=11)) +
+    geom_vline(data=cdat, aes(xintercept=`GC content`,  colour=`Gene type`),
+               linetype="dashed", size=1) #+ ggtitle('All genes (17641 genes)')
+  
+p <- p + scale_fill_manual(values=c("grey16", '#AE017E')) + scale_color_manual(values=c("grey16", '#AE017E'))
+p
+
+cdat <- aggregate(GC3 ~ `Gene type`, data = GC_total, median)
+
+p_GC3 <- ggplot(GC_total, aes(x=GC3, fill= `Gene type`)) +
+    geom_histogram(binwidth=.008, alpha=.7, position="identity") + 
+    theme_bw() + ylim(0,650) + theme(legend.position = c(0.15, 0.81)) +
+    theme(text = element_text(size=11)) +
+    geom_vline(data=cdat, aes(xintercept=GC3,  colour=`Gene type`),
+               linetype="dashed", size=1) #+ ggtitle('All genes (17641 genes)')
+  
+p_GC3 <- p_GC3 + scale_fill_manual(values=c("grey16", '#AE017E')) + scale_color_manual(values=c("grey16", '#AE017E'))
+p_GC3
+
+ggsave("/Users/PM/Desktop/Figures_paper/Final_figures/GC_content.pdf", width = 10, height = 6)
+
+
+```

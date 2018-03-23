@@ -711,4 +711,10 @@ done
 
 ## Detecting SNPs
 
+
+
+## Copying files from the cluster to the terminal
+
+for i in 3*; do scp -P 22 mica16@login.genome.au.dk:/home/mica16/NChain/faststorage/rhizobium/new_assemblies/genomes/$i/$i/*.fna /Users/PM ; done
+
 ```
