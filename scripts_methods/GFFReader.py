@@ -49,7 +49,8 @@ def gff_iter(gff_file_name, type_filter=None):
                     continue
 
                 attr_split = attr.split("=")
-                attrs[attr_split[0]] = attr_split[1].strip().replace("%09", "\t")
+                #print attr_split
+                attrs[attr_split[0]] = attr_split[1].strip().replace("%09", "\t")   
 
             yield GFFEntry(line_information[0], line_information[1], line_information[2], start, end, score,
                            line_information[6], phase, attrs)

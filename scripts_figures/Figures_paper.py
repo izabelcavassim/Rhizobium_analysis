@@ -17,6 +17,7 @@ import matplotlib
 from matplotlib import rcParams
 rcParams['font.family'] = 'sans-serif'
 rcParams['font.sans-serif'] = ['Tahoma']
+matplotlib.rcParams.update({'font.size': 14})
 from matplotlib import pyplot as plt
 from sys import argv
 figure_dir = '/Users/PM/Desktop/New_data/final_figures/'
@@ -54,7 +55,7 @@ def ANI_figure(figure_dir = figure_dir, level = 'snp_level'):
 		ani = sp.dot(presence_absence, presence_absence.T)
 
 	if level == 'ANI_level':
-		ani = pd.DataFrame.from_csv('/Users/PM/Desktop/scripts_Asger/Rhizobium_analysis/scripts_figures/ani_sorted_by_genospecies_282.csv', sep = ',')
+		ani = pd.DataFrame.from_csv('/Users/PM/Desktop/scripts_Asger/Rhizobium_analysis/scripts_figures/ani_sorted_by_genospecies_test.csv', sep = ',')
 		
 		strain_names = ani.index	
 		print ani	
@@ -126,7 +127,7 @@ def ANI_figure(figure_dir = figure_dir, level = 'snp_level'):
 	plt.legend(handles = patches1, loc = (3,0.1))
 	plt.savefig(figure_dir + 'ani_sorted_by_genospecies_{}.pdf'.format(level))
 
-ANI_figure(level = 'ANI_level')
+#ANI_figure(level = 'ANI_level')
 
 
 def kinship_all_genes(snps_file= '/Users/PM/Desktop/New_data/newsnps_100.hdf5',
@@ -374,7 +375,7 @@ def presence_absence_plot(figure = True, proteinortho_directory = '/Users/PM/Des
 		print('{} {}'.format(i,len(j)))
 
 	strain_names = sorted(gene_groups['group10'])
-	print strain_names
+	#print strain_names
 
 	# Filling up first the core genes
 	keys_sorted = sorted(gene_groups, key=lambda k: len(gene_groups[k]))
@@ -404,8 +405,8 @@ def presence_absence_plot(figure = True, proteinortho_directory = '/Users/PM/Des
 
 	stats = Counter(histogram)
 
-	for values, keys in stats.items():
-		print keys, values
+	#for values, keys in stats.items():
+	#	print keys, values
 
 	if figure == True:
 		with plt.style.context('default'):    
@@ -442,7 +443,7 @@ def presence_absence_plot(figure = True, proteinortho_directory = '/Users/PM/Des
 		gs_list = [pop[str(strain)]['genospecies'] for strain in strain_names]
 		gs_colours = [gs2colour[gs] for gs in gs_list]
 
-		print Counter(gs_colours)
+		#print Counter(gs_colours)
 
 		country_list = [pop[str(strain)]['country'] for strain in strain_names]
 		country_colours = [country2colour[country] for country in country_list]
@@ -501,26 +502,6 @@ def define_combinations(genospecies = ['gsA', 'gsB', 'gsC', 'gsD', 'gsE']):
 	return d
 import csv
 
-def make_histograms(dicts, xlab = None, ylab = None, save_name = None, fig_dir = figure_dir):
-	import pylab as pl
-	X = np.arange(len(dicts))
-
-
-	with open('%s/figure_%s.csv'%(fig_dir,save_name), 'wb') as f:  # Just use 'w' mode in 3.x
-		w = csv.DictWriter(f, dicts.keys())
-		w.writeheader()
-		w.writerow(dicts)
-   	pl.bar(X, dicts.keys(), align='center', width=0.5)
-	pl.xticks(X, dicts.keys())
-  	ymax = max(dicts.values())*1.05
-  	xmax = len(dicts)
-  	pl.xlabel(xlab)
-  	pl.ylabel(ylab)
-  	pl.ylim(0, ymax)
-  	pl.xlim(-1,xmax)
-  	pl.grid(True)
-  	pl.savefig('%s/figure_%s.pdf'%(fig_dir,save_name))
-   	pl.show()
 
 def venn_diagram():
 	pop = parse_pop_map(file_name = '/Users/PM/Desktop/PHD_incomplete/Bjarnicode/scripts/Rhizobium_soiltypes_new.txt')
@@ -530,6 +511,8 @@ def venn_diagram():
 	#genospecies = ['gsA', 'gsB', 'gsC', 'gsD', 'gsE']
 
 	venn_dictionary = define_combinations()
+
+	gene_lists_venn = {'gsA':[], 'gsB': [], 'gsC': [],'gsD': [], 'gsE': []}
 	total_geno = {'gsA': 0, 'gsB':0, 'gsC': 0,'gsD': 0, 'gsE': 0}
 	hist_per_geno = {'gsA': {}, 'gsB':{}, 'gsC': {},'gsD': {}, 'gsE': {}}
 
@@ -555,7 +538,23 @@ def venn_diagram():
 
 		# How many genes are shared by each possible combination of genospecies?:    
 		gs_list_joined = "".join(sorted(sp.unique(gs_list)))
+		if 'gsA' in gs_list_joined:
+			gene_lists_venn['gsA'].append(gene)
+		if 'gsB' in gs_list_joined:
+			gene_lists_venn['gsB'].append(gene)
+		if 'gsC' in gs_list_joined:
+			gene_lists_venn['gsC'].append(gene)
+		if 'gsD' in gs_list_joined:
+			gene_lists_venn['gsD'].append(gene)
+		if 'gsE' in gs_list_joined:
+			gene_lists_venn['gsE'].append(gene)												
+
 		venn_dictionary[gs_list_joined] += 1
+
+	#for k in gene_lists_venn.keys():
+	#	print k
+	for value in gene_lists_venn['gsE']:
+		print value
 
 	#print venn_dictionary
 	print hist_per_geno
@@ -570,16 +569,6 @@ def venn_diagram():
 	print '\nTotal amount of genes present in each genospecies', total_geno
 	print '\nDistribution of genes per genospecies', hist_per_geno
 
-	'''Total number of genes present in each genospecies'''
-
-	make_histograms(total_geno, xlab = 'Genospecies', ylab = 'Genes', save_name = 'genes_genospecies.pdf')
-
-	make_histograms(strains_geno, xlab = 'Genospecies', ylab = 'Strains', save_name = 'strains_genospecies.pdf')
-
-	for i in strains_geno.keys():
-		make_histograms(hist_per_geno[i], xlab= 'Strains', ylab = 'Genes', save_name = i)
-
-	# The barplot figure is written in r, script: barplot_genes_genospecies.R 
 #print venn_diagram()
 
 def len_forced(obj):

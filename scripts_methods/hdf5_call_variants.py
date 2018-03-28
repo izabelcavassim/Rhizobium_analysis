@@ -137,7 +137,7 @@ def parse_pop_map(file_name = '/Users/PM/Desktop/PHD_incomplete/Bjarnicode/scrip
 	return pop_map
 
 
-def gen_genotype_hdf5file(out_hdf5_file ='/Users/PM/Desktop/New_data/final2_snps.hdf5', 
+def gen_genotype_hdf5file(out_hdf5_file ='/Users/PM/Desktop/New_data/final_snps.hdf5', 
 						  snps_directory='/Users/PM/Desktop/New_data/group_snps/',
 						  fna_files_directory='/Users/PM/Desktop/New_data/group_alns/',
 						  #fna_files_directory= '/Users/PM/Desktop/PHD_incomplete/Methods/group_alns/',
@@ -433,5 +433,5 @@ def call_variants(gt_hdf5_file='/Users/PM/Desktop/New_data/final_snps.hdf5',
 	print 'Parsed %d'%num_parsed_genes
 
 
-gen_genotype_hdf5file()
-#call_variants()
+#gen_genotype_hdf5file()
+call_variants()
