@@ -644,6 +644,18 @@ if __name__ == '__main__':
 
 ## Corrected SNPs
 
+## Producing Coloured trees
+
+```{r, engine = 'bash', eval = FALSE}
+# Running the ColorTree script for each newick file
+!/bin/bash
+for file1 in *.nw
+do
+./colorTree_darwin -i $file1 -c configuration_test.txt -o Dendro_files/$file1
+done
+
+```
+
 ## Intergenic LD without population structure
 
 
