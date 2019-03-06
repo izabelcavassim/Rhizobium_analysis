@@ -2,6 +2,14 @@ Introduction
 ============
 
 This document was created as a repository of the scripts used in the analysis of the Rhizobium paper.
+The data used in this analysis is available in the following link: 
+   https://www.dropbox.com/sh/6fceqmwfa3p3fm6/AAAkFIRCf7ZxgO1a4fHv3FeOa?dl=0
+   The folder contains the following data:
+   * Group_fnas: Fasta files of orthologous genes (no-alignment) 
+   * Group_alns: Algined fasta files of orthologous genes 
+   * corrected_snps: snp files of polymorphic genes corrected by population structure
+   * ani_sorted_by_genospecies_282_sorted: Average nucleotide identity (ANI) across 282 conserved core genes
+   * README file explaining the rest of the data provided
 
 Genome assembly: Spades
 -----------------------
@@ -631,70 +639,4 @@ if __name__ == '__main__':
 #     echo "$f - $OUT"
 #     qx --no-scratch -t 00:15:00 "/home/agb/tools/prank -d=$f -o=$OUT -codon"
 # done
-```
-
-Corrected SNPs
---------------
-
-Useful bash commands
---------------------
-
-``` bash
-
-# Changing file names:
-
-for file in *.fas; do mv "$file" "${file/_0_1p_scaffolds.fas/.contigs.fna}"; done
-
-# Creating a folder for each file:
-
-for file in *.contigs.fna; do
-  suffix=".contigs.fna"
-  dir=${file%$suffix}
-  echo $dir
-  mkdir -p "./$dir" &&
-  cp -iv "$file" "./$dir"
-done
-
-# Activate the gwf envinroment 
-gwf config set backend slurm
-
-# Running prokka with careful parameters 
---metagenome      Improve gene predictions for highly fragmented genomes (default OFF)
---proteins [X]    Fasta file of trusted proteins to first annotate from (default '') 
-The symbiotic fasta file was addedls
-
-
-# Remove all folders of a directory
-rm -R -- */
-
-# Change the permission of files
-chmod 777 filename
-
-# Running proteinortho:
-#!/bin/bash                                                                                                                                            
-# For each protein fasta file, go through each step of proteinortho, with synteny flag enabled                                                         
-
-qx --no-scratch -t 00:30:00 -c 16 -w "/project/NChain/faststorage/tools/proteinortho_v5.16_final/proteinortho5.pl -cpus=16 -synteny -step=1 genomes/da\
-ta/*.faa"
-
-for i in {1..199}; do
-    qx --no-scratch -t 24:00:00 -c 4 "/project/NChain/faststorage/tools/proteinortho_v5.16_final/proteinortho5.pl  -cpus=4 -synteny -step=2 -jobs=$i/2\
-00 genomes/data/*.faa"
-done
-
-qx --no-scratch -t 4:00:00 -c 8 "/project/NChain/faststorage/tools/proteinortho_v5.16_final/proteinortho5.pl  -cpus=8 -synteny -step=3 genomes/data/*.\
-faa"
-
-## Parsing proteinortho output
-
-
-## Aligning using clustalo (fix code, i need to source python)
-#!/bin/bash                                                                                                                                            
-for f in data_test_clustaol/group*.fna; do
-    OUT="group_alns"/${f#*/*}
-    echo "$f - $OUT"
-    qx -A nchain --no-scratch -t 00:10:00 -m 1g "/home/mica16/anaconda2/bin/python codon_aware_clustal.py $f ./project/clover/faststorage/tools/clustalo > $OUT"
-done
-
-## Detecting SNPs
 ```
