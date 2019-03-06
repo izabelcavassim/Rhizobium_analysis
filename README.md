@@ -3,6 +3,7 @@ Introduction
 
 This document was created as a repository of the scripts used in the analysis of the Rhizobium paper.
 The data used in this analysis is available in the following link: 
+
    https://www.dropbox.com/sh/6fceqmwfa3p3fm6/AAAkFIRCf7ZxgO1a4fHv3FeOa?dl=0
    The folder contains the following data:
    * Group_fnas: Fasta files of orthologous genes (no-alignment) 
