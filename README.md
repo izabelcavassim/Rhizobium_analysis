@@ -7,11 +7,11 @@ The data used in this analysis is available in the following link:
    https://www.dropbox.com/sh/6fceqmwfa3p3fm6/AAAkFIRCf7ZxgO1a4fHv3FeOa?dl=0
    
    The folder contains the following data:
-   * Group_fnas: Fasta files of orthologous genes (no-alignment) 
-   * Group_alns: Algined fasta files of orthologous genes 
-   * corrected_snps: snp files of polymorphic genes corrected by population structure
-   * ani_sorted_by_genospecies_282_sorted: Average nucleotide identity (ANI) across 282 conserved core genes
-   * README file explaining the rest of the data provided
+   * **Group_fnas**: Fasta files of orthologous genes (no-alignment) 
+   * **Group_alns**: Algined fasta files of orthologous genes 
+   * **corrected_snps**: snp files of polymorphic genes corrected by population structure
+   * **ani_sorted_by_genospecies_282_sorted**: Average nucleotide identity (ANI) across 282 conserved core genes
+   * **README** file explaining the rest of the data provided
 
 Genome assembly: Spades
 -----------------------
