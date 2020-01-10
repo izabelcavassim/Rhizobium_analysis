@@ -1,3 +1,7 @@
+# Author
+This script was developed by Camous Moslemi and applied in the article: Symbiosis genes show a unique pattern of introgression and selection within a Rhizobium leguminosarum species complex (doi: https://doi.org/10.1101/526707). 
+Please contact the authors for details.
+
 # Syntenizer3000
 Tool for bacterial genome analysis including but not limited to synteny measurement.
 

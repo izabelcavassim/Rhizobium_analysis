@@ -1,3 +1,7 @@
+# Author
+This script was developed by J. Peter W. Young and applied in the article: Symbiosis genes show a unique pattern of introgression and selection within a Rhizobium leguminosarum species complex (doi: https://doi.org/10.1101/526707). 
+Please contact the authors for details.
+
 # genomics
 Genome analysis of rhizobia and other bacteria
 
