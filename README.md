@@ -1,7 +1,8 @@
 Introduction
 ============
 
-This document was created as a repository of the scripts used in the analysis of the Rhizobium paper.
+This document was created as a repository of the scripts used in the analysis of the article: Symbiosis genes show a unique pattern of introgression and selection within a Rhizobium leguminosarum species complex (doi: https://doi.org/10.1101/526707).
+
 The data used in this analysis is available in the following link: 
 
    https://www.dropbox.com/sh/6fceqmwfa3p3fm6/AAAkFIRCf7ZxgO1a4fHv3FeOa?dl=0
@@ -12,6 +13,11 @@ The data used in this analysis is available in the following link:
    * **corrected_snps**: snp files of polymorphic genes corrected by population structure
    * **ani_sorted_by_genospecies_282_sorted**: Average nucleotide identity (ANI) across 282 conserved core genes
    * **README** file explaining the rest of the data provided
+
+It can also be accessed in the open repository:
+BLA
+
+Genome assemblies are found at NCBI under the project: https://www.ncbi.nlm.nih.gov/bioproject/PRJNA510726/
 
 Genome assembly: Spades
 -----------------------
