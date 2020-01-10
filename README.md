@@ -15,7 +15,7 @@ The data used in this analysis is available in the following link:
    * **README** file explaining the rest of the data provided
 
 It can also be accessed in the open repository:
-BLA
+https://doi.org/10.6084/m9.figshare.11568894.v1
 
 Genome assemblies are found at NCBI under the project: https://www.ncbi.nlm.nih.gov/bioproject/PRJNA510726/
 
