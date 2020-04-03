@@ -1,7 +1,7 @@
 Introduction
 ============
 
-This document was created as a repository of the scripts used in the analysis of the article: Symbiosis genes show a unique pattern of introgression and selection within a Rhizobium leguminosarum species complex (doi: https://doi.org/10.1101/526707).
+This document was created as a repository of the scripts used in the analysis of the article: Symbiosis genes show a unique pattern of introgression and selection within a Rhizobium leguminosarum species complex (doi: https://doi.org/10.1099/mgen.0.000351).
 
 The data used in this analysis is available in the following link: 
 
